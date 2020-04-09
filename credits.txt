@@ -1,0 +1,24 @@
+olcPixelGameEngine - Javidx9
+https://github.com/OneLoneCoder/olcPixelGameEngine
+
+
+olcPGEX_AnimatedSprite - SaladinAkara
+https://github.com/matt-hayward/olcPGEX_AnimatedSprite
+
+
+tileson - SSBMTonberry
+https://github.com/SSBMTonberry/tileson
+
+
+Universal LPC Spritesheet Character Generator
+http://gaurav.munjal.us/Universal-LPC-Spritesheet-Character-Generator/
+
+
+SPECIAL THANKS TO
+Javidx9
+SaladinAkara
+Tutas
+DragonEye
+
+and everybody who hangs out on
+the OneLoneCoder Discord Server
