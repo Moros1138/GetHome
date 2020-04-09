@@ -32,14 +32,14 @@ This section is incomplete on account that I develop from a Linux first perspect
 ### Building and Running on Linux
 
 ##### Building
-#
+
 ```sh
 git clone https://github.com/Moros1138/GetHome.git
 cd GetHome
 make
 ```
 ##### Running
-#
+
 ```sh
 bin/GetHome
 ```
