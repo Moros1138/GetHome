@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+bin/GetHome
+bin/GetHome.exe
+
+# Distribution Files
+dist/*
