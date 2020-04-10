@@ -517,7 +517,7 @@ private:
 int main()
 {
 	olc_BeatTheBoredom game;
-	if(game.Construct(320, 240, 2, 2, false, true))
+	if(game.Construct(320, 240, 2, 2, false, false))
 		game.Start();
 
 	return 0;
