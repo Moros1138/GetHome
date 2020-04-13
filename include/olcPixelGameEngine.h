@@ -2,7 +2,7 @@
 	olcPixelGameEngine.h
 
 	+-------------------------------------------------------------+
-	|           OneLoneCoder Pixel Game Engine v2.0               |
+	|           OneLoneCoder Pixel Game Engine v2.01              |
 	|  "What do you need? Pixels... Lots of Pixels..." - javidx9  |
 	+-------------------------------------------------------------+
 
@@ -128,7 +128,9 @@
 
 	Author
 	~~~~~~
-	David Barr, aka javidx9, ©️OneLoneCoder 2018, 2019, 2020
+	David Barr, aka javidx9, �OneLoneCoder 2018, 2019, 2020
+
+	2.01: Made renderer and platform static for multifile projects
 */
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -202,6 +204,7 @@ int main()
 #include <functional>
 #include <algorithm>
 #include <array>
+#include <cstring>
 
 // O------------------------------------------------------------------------------O
 // | COMPILER CONFIGURATION ODDITIES                                              |
@@ -323,7 +326,7 @@ namespace olc
 		inline v2d_generic() : x(0), y(0)                        {                                                            }
 		inline v2d_generic(T _x, T _y) : x(_x), y(_y)            {                                                            }
 		inline v2d_generic(const v2d_generic& v) : x(v.x), y(v.y){                                                            }
-		inline T mag()                                           { return sqrt(x * x + y * y);                                }
+		inline T mag()                                           { return std::sqrt(x * x + y * y);                           }
 		inline T mag2()					                         { return x * x + y * y;                                      }
 		inline v2d_generic  norm()                               { T r = 1 / mag(); return v2d_generic(x*r, y*r);             }
 		inline v2d_generic  perp()                               { return v2d_generic(-y, x);                                 }
@@ -402,7 +405,7 @@ namespace olc
 		struct sResourceFile { uint32_t nSize; uint32_t nOffset; };
 		std::map<std::string, sResourceFile> mapFiles;
 		std::ifstream baseFile;
-		const std::string scramble(const std::string& data, const std::string& key);
+		std::vector<char> scramble(const std::vector<char>& data, const std::string& key);
 		std::string makeposix(const std::string& path);
 	};
 
@@ -517,9 +520,9 @@ namespace olc
 		static olc::PixelGameEngine* ptrPGE;
 	};
 	
-	std::unique_ptr<Renderer> renderer;
-	std::unique_ptr<Platform> platform;
-	std::map<size_t, uint8_t> mapKeys;
+	static std::unique_ptr<Renderer> renderer;
+	static std::unique_ptr<Platform> platform;
+	static std::map<size_t, uint8_t> mapKeys;
 
 	// O------------------------------------------------------------------------------O
 	// | olc::PixelGameEngine - The main BASE class for your application              |
@@ -641,7 +644,10 @@ namespace olc
 		// Draws a region of a decal, with optional scale and tinting
 		void DrawPartialDecal(const olc::vf2d& pos, olc::Decal* decal, const olc::vf2d& source_pos, const olc::vf2d& source_size, const olc::vf2d& scale = { 1.0f,1.0f }, const olc::Pixel& tint = olc::WHITE);
 		
-		void DrawWarpedDecal(olc::Decal* decal, const std::array<olc::vf2d, 4> &pos, const olc::Pixel& tint = olc::WHITE);
+		void DrawWarpedDecal(olc::Decal* decal, const olc::vf2d(&pos)[4], const olc::Pixel& tint = olc::WHITE);
+		void DrawWarpedDecal(olc::Decal* decal, const olc::vf2d* pos, const olc::Pixel& tint = olc::WHITE);
+		void DrawWarpedDecal(olc::Decal* decal, const std::array<olc::vf2d, 4>& pos, const olc::Pixel& tint = olc::WHITE);
+
 		void DrawRotatedDecal(const olc::vf2d& pos, olc::Decal* decal, const float fAngle, const olc::vf2d& center = { 0.0f, 0.0f }, const olc::vf2d& scale = { 1.0f,1.0f }, const olc::Pixel& tint = olc::WHITE);
 
 		
@@ -851,9 +857,8 @@ namespace olc
 			ResourceBuffer rb = pack->GetFileBuffer(sImageFile);
 			std::istream is(&rb);
 			ReadData(is);
+			return olc::OK;
 		}
-
-
 		return olc::FAIL;
 	}
 
@@ -968,29 +973,30 @@ namespace olc
 	// O------------------------------------------------------------------------------O
 	// | olc::ResourcePack IMPLEMENTATION                                             |
 	// O------------------------------------------------------------------------------O
-	ResourceBuffer::ResourceBuffer(std::ifstream &ifs, uint32_t offset, uint32_t size)
+
+
+	//=============================================================
+	// Resource Packs - Allows you to store files in one large 
+	// scrambled file - Thanks MaGetzUb for debugging a null char in std::stringstream bug
+	ResourceBuffer::ResourceBuffer(std::ifstream& ifs, uint32_t offset, uint32_t size)
 	{
 		vMemory.resize(size);
 		ifs.seekg(offset); ifs.read(vMemory.data(), vMemory.size());
 		setg(vMemory.data(), vMemory.data(), vMemory.data() + size);
 	}
 
-	ResourcePack::ResourcePack()
-	{ }
-
-	ResourcePack::~ResourcePack()
-	{ baseFile.close(); }
+	ResourcePack::ResourcePack() { }
+	ResourcePack::~ResourcePack() { baseFile.close(); }
 
 	bool ResourcePack::AddFile(const std::string& sFile)
 	{
-
 		const std::string file = makeposix(sFile);
 
 		if (_gfs::exists(file))
 		{
 			sResourceFile e;
 			e.nSize = (uint32_t)_gfs::file_size(file);
-			e.nOffset = 0; // Unknown at this stage
+			e.nOffset = 0; // Unknown at this stage			
 			mapFiles[file] = e;
 			return true;
 		}
@@ -1007,28 +1013,38 @@ namespace olc
 		uint32_t nIndexSize = 0;
 		baseFile.read((char*)&nIndexSize, sizeof(uint32_t));
 
-		std::string buffer(nIndexSize, ' ');
+		std::vector<char> buffer(nIndexSize);
 		for (uint32_t j = 0; j < nIndexSize; j++)
 			buffer[j] = baseFile.get();
 
-		std::string decoded = scramble(buffer, sKey);
-		std::stringstream iss(decoded);
+		std::vector<char> decoded = scramble(buffer, sKey);
+		size_t pos = 0;
+		auto read = [&decoded, &pos](char* dst, size_t size) {
+			memcpy((void*)dst, (const void*)(decoded.data() + pos), size);
+			pos += size;
+		};
+
+		auto get = [&read]() -> int {
+			char c;
+			read(&c, 1);
+			return c;
+		};
 
 		// 2) Read Map
-		uint32_t nMapEntries;
-		iss.read((char*)&nMapEntries, sizeof(uint32_t));
+		uint32_t nMapEntries = 0;
+		read((char*)&nMapEntries, sizeof(uint32_t));
 		for (uint32_t i = 0; i < nMapEntries; i++)
 		{
 			uint32_t nFilePathSize = 0;
-			iss.read((char*)&nFilePathSize, sizeof(uint32_t));
+			read((char*)&nFilePathSize, sizeof(uint32_t));
 
 			std::string sFileName(nFilePathSize, ' ');
 			for (uint32_t j = 0; j < nFilePathSize; j++)
-				sFileName[j] = iss.get();
+				sFileName[j] = get();
 
 			sResourceFile e;
-			iss.read((char*)&e.nSize, sizeof(uint32_t));
-			iss.read((char*)&e.nOffset, sizeof(uint32_t));
+			read((char*)&e.nSize, sizeof(uint32_t));
+			read((char*)&e.nOffset, sizeof(uint32_t));
 			mapFiles[sFileName] = e;
 		}
 
@@ -1046,9 +1062,9 @@ namespace olc
 		// Iterate through map
 		uint32_t nIndexSize = 0; // Unknown for now
 		ofs.write((char*)&nIndexSize, sizeof(uint32_t));
-		uint32_t nMapSize = (uint32_t)mapFiles.size();
+		uint32_t nMapSize = uint32_t(mapFiles.size());
 		ofs.write((char*)&nMapSize, sizeof(uint32_t));
-		for (auto &e : mapFiles)
+		for (auto& e : mapFiles)
 		{
 			// Write the path of the file
 			size_t nPathSize = e.first.size();
@@ -1063,43 +1079,50 @@ namespace olc
 		// 2) Write the individual Data
 		std::streampos offset = ofs.tellp();
 		nIndexSize = (uint32_t)offset;
-		for (auto &e : mapFiles)
+		for (auto& e : mapFiles)
 		{
 			// Store beginning of file offset within resource pack file
 			e.second.nOffset = (uint32_t)offset;
 
 			// Load the file to be added
-			std::vector<char> vBuffer(e.second.nSize);
+			std::vector<uint8_t> vBuffer(e.second.nSize);
 			std::ifstream i(e.first, std::ifstream::binary);
-			i.read(vBuffer.data(), e.second.nSize);
+			i.read((char*)vBuffer.data(), e.second.nSize);
 			i.close();
 
 			// Write the loaded file into resource pack file
-			ofs.write(vBuffer.data(), e.second.nSize);
+			ofs.write((char*)vBuffer.data(), e.second.nSize);
 			offset += e.second.nSize;
 		}
 
 		// 3) Scramble Index
-		std::stringstream oss;
-		oss.write((char*)&nMapSize, sizeof(uint32_t));
-		for (auto &e : mapFiles)
+		std::vector<char> stream;
+		auto write = [&stream](const char* data, size_t size) {
+			size_t sizeNow = stream.size();
+			stream.resize(sizeNow + size);
+			memcpy(stream.data() + sizeNow, data, size);
+		};
+
+		// Iterate through map
+		write((char*)&nMapSize, sizeof(uint32_t));
+		for (auto& e : mapFiles)
 		{
 			// Write the path of the file
 			size_t nPathSize = e.first.size();
-			oss.write((char*)&nPathSize, sizeof(uint32_t));
-			oss.write(e.first.c_str(), nPathSize);
+			write((char*)&nPathSize, sizeof(uint32_t));
+			write(e.first.c_str(), nPathSize);
 
 			// Write the file entry properties
-			oss.write((char*)&e.second.nSize, sizeof(uint32_t));
-			oss.write((char*)&e.second.nOffset, sizeof(uint32_t));
+			write((char*)&e.second.nSize, sizeof(uint32_t));
+			write((char*)&e.second.nOffset, sizeof(uint32_t));
 		}
-		std::string sIndexString = scramble(oss.str(), sKey);
-
+		std::vector<char> sIndexString = scramble(stream, sKey);
+		uint32_t nIndexStringLen = uint32_t(sIndexString.size());
 		// 4) Rewrite Map (it has been updated with offsets now)
 		// at start of file
-		ofs.seekp(std::ios::beg);
-		ofs.write((char*)&nIndexSize, sizeof(uint32_t));
-		ofs.write(sIndexString.c_str(), nIndexSize);
+		ofs.seekp(0, std::ios::beg);
+		ofs.write((char*)&nIndexStringLen, sizeof(uint32_t));
+		ofs.write(sIndexString.data(), nIndexStringLen);
 		ofs.close();
 		return true;
 	}
@@ -1110,10 +1133,12 @@ namespace olc
 	bool ResourcePack::Loaded()
 	{ return baseFile.is_open(); }
 
-	const std::string ResourcePack::scramble(const std::string& data, const std::string& key)
+	std::vector<char> ResourcePack::scramble(const std::vector<char>& data, const std::string& key)
 	{
-		size_t c = 0; std::string o;
-		for (auto s : data)	o += std::string(1, s ^ key[(c++) % key.size()]);
+		if (key.empty()) return data;
+		std::vector<char> o;
+		size_t c = 0;
+		for (auto s : data)	o.push_back(s ^ key[(c++) % key.size()]);
 		return o;
 	};
 
@@ -1151,13 +1176,8 @@ namespace olc
 		bEnableVSYNC = vsync;
 		vPixel = 2.0f / vScreenSize;
 
-		if (vPixelSize.x == 0 || vPixelSize.y == 0 || vScreenSize.x == 0 || vScreenSize.y == 0)
+		if (vPixelSize.x <= 0 || vPixelSize.y <= 0 || vScreenSize.x <= 0 || vScreenSize.y <= 0)
 			return olc::FAIL;
-
-		// Need this little interjection to cache local unicode app name
-		#if defined(_WIN32) && defined(UNICODE) && !defined(__MINGW32__)
-			wsAppName = ConvertS2W(sAppName);
-		#endif
 
 		// Construct default font sheet
 		olc_ConstructFontSheet();
@@ -1261,7 +1281,7 @@ namespace olc
 		ld.nResID = renderer->CreateTexture(vScreenSize.x, vScreenSize.y);
 		renderer->UpdateTexture(ld.nResID, ld.pDrawTarget);		
 		vLayers.push_back(ld);
-		return vLayers.size() - 1;
+		return uint32_t(vLayers.size()) - 1;
 	}
 
 	Sprite* PixelGameEngine::GetDrawTarget()
@@ -1821,15 +1841,15 @@ namespace olc
 		vLayers[nTargetLayer].vecDecalInstance.push_back(di);
 	}
 
-	void PixelGameEngine::DrawWarpedDecal(olc::Decal* decal, const std::array<olc::vf2d, 4>& pos, const olc::Pixel& tint)
+	void PixelGameEngine::DrawWarpedDecal(olc::Decal* decal, const olc::vf2d* pos, const olc::Pixel& tint)
 	{
 		// Thanks Nathan Reed, a brilliant article explaining whats going on here
 		// http://www.reedbeta.com/blog/quadrilateral-interpolation-part-1/
 		DecalInstance di;
 		di.decal = decal;
-		di.tint = tint;		
+		di.tint = tint;
 		olc::vf2d center;
-		float rd = ((pos[2].x - pos[0].x) * (pos[3].y - pos[1].y) -	(pos[3].x - pos[1].x) * (pos[2].y - pos[0].y));
+		float rd = ((pos[2].x - pos[0].x) * (pos[3].y - pos[1].y) - (pos[3].x - pos[1].x) * (pos[2].y - pos[0].y));
 		if (rd != 0)
 		{
 			rd = 1.0f / rd;
@@ -1845,6 +1865,16 @@ namespace olc
 			}
 			vLayers[nTargetLayer].vecDecalInstance.push_back(di);
 		}
+	}
+
+	void PixelGameEngine::DrawWarpedDecal(olc::Decal* decal, const std::array<olc::vf2d, 4>& pos, const olc::Pixel& tint)
+	{
+		DrawWarpedDecal(decal, pos.data(), tint);
+	}
+
+	void PixelGameEngine::DrawWarpedDecal(olc::Decal* decal, const olc::vf2d(&pos)[4], const olc::Pixel& tint)
+	{
+		DrawWarpedDecal(decal, &pos[0], tint);		
 	}
 
 	void PixelGameEngine::DrawString(const olc::vi2d& pos, const std::string& sText, Pixel col, uint32_t scale)
@@ -2284,6 +2314,7 @@ namespace olc
 		#endif		
 		
 			glEnable(GL_TEXTURE_2D); // Turn on texturing
+			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 			return olc::rcode::OK;
 		}
 
@@ -2334,7 +2365,6 @@ namespace olc
 
 		void DrawDecalQuad(const olc::DecalInstance& decal) override
 		{
-			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 			glBindTexture(GL_TEXTURE_2D, decal.decal->id);
 			glBegin(GL_QUADS);
 			glColor4ub(decal.tint.r, decal.tint.g, decal.tint.b, decal.tint.a);
@@ -2408,7 +2438,7 @@ namespace olc
 
 // Include WinAPI
 #if !defined(NOMINMAX)
-#	define NOMINMAX
+	#define NOMINMAX
 #endif
 #define VC_EXTRALEAN
 #define WIN32_LEAN_AND_MEAN
@@ -2615,7 +2645,7 @@ namespace olc
 		{
 			// Load sprite from input stream
 			ResourceBuffer rb = pack->GetFileBuffer(sImageFile);
-			bmp = Gdiplus::Bitmap::FromStream(SHCreateMemStream((BYTE*)rb.vMemory.data(), rb.vMemory.size()));
+			bmp = Gdiplus::Bitmap::FromStream(SHCreateMemStream((BYTE*)rb.vMemory.data(), UINT(rb.vMemory.size())));
 		}
 		else
 		{
@@ -2931,9 +2961,7 @@ namespace olc
 			for (int y = 0; y < height; y++) // Thanks maksym33
 				free(row_pointers[y]);
 			free(row_pointers);
-			png_destroy_read_struct(&png, &info, nullptr);
-			
-
+			png_destroy_read_struct(&png, &info, nullptr);			
 		};
 
 		png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
