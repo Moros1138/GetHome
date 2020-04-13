@@ -8,10 +8,8 @@ else
 	PROJECTNAME=GetHome
 	PROJECTEXT=
 	LIBS=-lm -lX11 -lGL -lpthread -lpng -lstdc++fs
-	LFLAGS=-s
+	LFLAGS=-s -static-libstdc++
 	ODIR=obj/linux-x86_64
-
-
 endif
 
 IDIR=include
