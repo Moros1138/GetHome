@@ -35,3 +35,7 @@ bin/GetHome.exe
 
 # Distribution Files
 dist/*
+
+assets/temp/
+
+.vscode/
