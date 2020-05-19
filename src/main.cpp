@@ -34,7 +34,8 @@ struct Game {
 	float time;
 	float gameOverTime;
 };
-		
+
+
 class olc_BeatTheBoredom : public olc::PixelGameEngine
 {
 public:
@@ -48,7 +49,16 @@ public:
 	{
 		game.state = SPLASH;
 
-		tilesetSprite = new olc::Sprite("assets/olcBTB_tileset1.png");
+		pack = new olc::ResourcePack();
+		pack->LoadPack("assets/resource.pak", "moros rocks");
+		
+		if(!pack->Loaded())
+		{
+			std::cout << "Oh fuck!" << std::endl;
+			return false;
+		}
+
+		tilesetSprite = new olc::Sprite("assets/olcBTB_tileset1.png", pack);
 		tilesetDecal = new olc::Decal(tilesetSprite);
 
 		hudSprite = new olc::Sprite(110, 16);
@@ -66,12 +76,14 @@ public:
 
 		shadowDecal = new olc::Decal(shadowSprite);
 
-		splashSprite = new olc::Sprite("assets/olcBTB_splash.png");
-		creditsSprite = new olc::Sprite("assets/olcBTB_credits.png");
+		splashSprite = new olc::Sprite("assets/olcBTB_splash.png", pack);
+		creditsSprite = new olc::Sprite("assets/olcBTB_credits.png", pack);
 		
 		LoadCharacterSprite();
 
-		map = parser.parse(fs::path("assets/outdoors.json"));
+		olc::ResourceBuffer rb = pack->GetFileBuffer("assets/outdoors.json");
+		
+		map = parser.parse(rb.vMemory.data(), rb.vMemory.size());
 		tileset = map.getTileset("olcBTB_tileset1");
 
 		objects = map.getLayer("objects");
@@ -427,7 +439,7 @@ private:
 	void LoadCharacterSprite()
 	{
 		game.sprite.mode = olc::AnimatedSprite::SPRITE_MODE::SINGLE; // set sprite to use a single spritesheet
-		game.sprite.spriteSheet = new olc::Sprite("assets/olcBTB_character.png"); // define image to use for the spritesheet
+		game.sprite.spriteSheet = new olc::Sprite("assets/olcBTB_character.png", pack); // define image to use for the spritesheet
 		
 		game.sprite.SetSpriteSize({32, 32}); // define size of each sprite with an olc::vi2d
 		game.sprite.SetSpriteScale(1.0f); // define scale of sprite; 1.0f is original size. Must be above 0 and defaults to 1.0f
@@ -508,6 +520,8 @@ private:
 
 private:
 	Game game;
+	
+	olc::ResourcePack *pack;
 
 	tson::Tileson parser;
 	tson::Map map;
