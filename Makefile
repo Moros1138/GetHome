@@ -51,21 +51,18 @@ package:
 	# create assets directory for windows
 	mkdir -p dist/windows/$(PROJECTNAME)/assets
 
-	# copy dev assets to linux assets directory
-	cp assets/olcBTB_character.png dist/linux/$(PROJECTNAME)/assets/
-	cp assets/olcBTB_credits.png dist/linux/$(PROJECTNAME)/assets/
-	cp assets/olcBTB_splash.png dist/linux/$(PROJECTNAME)/assets/
-	cp assets/olcBTB_tileset1.png dist/linux/$(PROJECTNAME)/assets/
-	cp assets/outdoors.json dist/linux/$(PROJECTNAME)/assets/
+	# copy assets to linux assets directory
+	cp assets/resource.pak dist/linux/$(PROJECTNAME)/assets/
 
-	# copy linux assets to windows assets directory
-	cp dist/linux/$(PROJECTNAME)/assets/* dist/windows/$(PROJECTNAME)/assets/
+	# copy assets to windows assets directory
+	cp assets/resource.pak dist/windows/$(PROJECTNAME)/assets/
+
 
 	# copy linux binary
 	cp bin/$(PROJECTNAME) dist/linux/$(PROJECTNAME)/
 	
 	# copy windows binary
-	cp bin/$(PROJECTNAME)$(PROJECTEXT) dist/windows/$(PROJECTNAME)/
+	cp bin/$(PROJECTNAME).exe dist/windows/$(PROJECTNAME)/
 
 	# ZIP linux
 	cd dist/linux; zip -r "../$(PROJECTNAME) (Linux)" .
