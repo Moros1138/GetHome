@@ -1,9 +1,6 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
-#define OLC_PGEX_GRAPHICS2D
-#include "olcPGEX_Graphics2D.h"
-
 #define OLC_PGEX_ANIMSPR
 #include "olcPGEX_AnimatedSprite.h"
 
@@ -98,7 +95,8 @@ public:
 
 		splashSprite = new olc::Sprite("assets/olcBTB_splash.png", pack);
 		creditsSprite = new olc::Sprite("assets/olcBTB_credits.png", pack);
-		
+		creditsDecal = new olc::Decal(creditsSprite);
+
 		LoadCharacterSprite();
 
 		olc::ResourceBuffer rb = pack->GetFileBuffer("assets/outdoors.json");
@@ -394,22 +392,15 @@ private: // State Functions
 			fScrollTracker = 0.0f;
 
 		Clear(olc::BLACK);
-		DrawSprite(0, ScreenHeight() + -fScrollTracker , creditsSprite, 1);
+		DrawDecal({0, ScreenHeight() + -fScrollTracker }, creditsDecal);
 	}
 
 
 private:
 	void DrawCharacter(float fElapsedTime, olc::Pixel tint = olc::WHITE)
 	{
-		SetDrawTarget(characterSprite);
-		game.sprite.Draw(fElapsedTime, {0, 0});
-		SetDrawTarget(nullptr);
-
 		DrawDecal({(ScreenWidth() / 2) - TILE_SIZE + 0.0f, (ScreenHeight() / 2) - (TILE_SIZE * 1.6f) + 0.0f}, shadowDecal, {1.0f, 1.0f}, tint);
-
-		characterDecal->Update();
-		DrawDecal({(ScreenWidth() / 2) - TILE_SIZE + 0.0f, (ScreenHeight() / 2) - (TILE_SIZE * 1.6f) + 0.0f}, characterDecal, {1.0f, 1.0f}, tint);
-
+		game.sprite.Draw(fElapsedTime, {(ScreenWidth() / 2) - TILE_SIZE + 0.0f, (ScreenHeight() / 2) - (TILE_SIZE * 1.8f) + 0.0f}, olc::Sprite::Flip::NONE, tint);
 	}
 
 	// helper function draws the map at the current player position
@@ -441,15 +432,17 @@ private:
 		float fProgress = game.time / game.gameOverTime;
 		olc::vf2d pos = { 210, 210 };
 		
-		DrawDecal(pos, hudDecal);
-		DrawDecal(pos + olc::vf2d(1, 11), decOnePixel, {99 * fProgress, 3}, olc::VERY_DARK_GREY);
+		// DrawDecal(pos, hudDecal);
+		// DrawDecal(pos + olc::vf2d(1, 11), decOnePixel, {99 * fProgress, 3}, olc::VERY_DARK_GREY);
 	}
 
 	// loads and sets the animated character sprite states
 	void LoadCharacterSprite()
 	{
 		game.sprite.mode = olc::AnimatedSprite::SPRITE_MODE::SINGLE; // set sprite to use a single spritesheet
-		game.sprite.spriteSheet = new olc::Sprite("assets/olcBTB_character.png", pack); // define image to use for the spritesheet
+		game.sprite.type = olc::AnimatedSprite::SPRITE_TYPE::DECAL;
+
+		game.sprite.spriteSheet = new olc::Renderable("assets/olcBTB_character.png", pack); // define image to use for the spritesheet
 		
 		game.sprite.SetSpriteSize({32, 32}); // define size of each sprite with an olc::vi2d
 		game.sprite.SetSpriteScale(1.0f); // define scale of sprite; 1.0f is original size. Must be above 0 and defaults to 1.0f
@@ -558,6 +551,7 @@ private:
 
 	olc::Sprite *splashSprite;
 	olc::Sprite *creditsSprite;
+	olc::Decal *creditsDecal;
 
 	olc::vi2d mapRenderSize;
 };
