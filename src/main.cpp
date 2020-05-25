@@ -62,7 +62,27 @@ public:
 		tilesetDecal = new olc::Decal(tilesetSprite);
 
 		hudSprite = new olc::Sprite(110, 16);
+
+		SetDrawTarget(hudSprite);
+		Clear(olc::BLANK);
+		DrawString(1, 1, "Time", olc::BLACK, 1);
+		DrawString(0, 0, "Time", olc::WHITE, 1);
+		
+		FillRect(2, 12, 100, 4, olc::BLACK);
+		FillRect(0, 10, 100, 4, olc::YELLOW);
+		DrawRect(0, 10, 100, 4, olc::WHITE);
+		SetDrawTarget(nullptr);
+
 		hudDecal = new olc::Decal(hudSprite);
+
+
+		sprOnePixel = new olc::Sprite(1, 1);
+
+		SetDrawTarget(sprOnePixel);
+		Clear(olc::WHITE);
+		SetDrawTarget(nullptr);
+
+		decOnePixel = new olc::Decal(sprOnePixel);
 
 		characterSprite = new olc::Sprite(32, 32);
 		characterDecal = new olc::Decal(characterSprite);
@@ -419,20 +439,10 @@ private:
 	void DrawHUD(float fElapsedTime)
 	{
 		float fProgress = game.time / game.gameOverTime;
+		olc::vf2d pos = { 210, 210 };
 		
-		SetDrawTarget(hudSprite);
-		Clear(olc::BLANK);
-		DrawString(1, 1, "Time", olc::BLACK, 1);
-		DrawString(0, 0, "Time", olc::WHITE, 1);
-		
-		FillRect(2, 12, 100, 4, olc::BLACK);
-		FillRect(0, 10, 100, 4, olc::YELLOW);
-		FillRect(0, 10, 100 * fProgress, 4, olc::VERY_DARK_GREY);
-		DrawRect(0, 10, 100, 4, olc::WHITE);
-		SetDrawTarget(nullptr);
-		
-		hudDecal->Update();
-		DrawDecal({ 210, 210 }, hudDecal);
+		DrawDecal(pos, hudDecal);
+		DrawDecal(pos + olc::vf2d(1, 11), decOnePixel, {99 * fProgress, 3}, olc::VERY_DARK_GREY);
 	}
 
 	// loads and sets the animated character sprite states
@@ -536,6 +546,9 @@ private:
 
 	olc::Sprite *hudSprite;
 	olc::Decal *hudDecal;
+
+	olc::Sprite *sprOnePixel;
+	olc::Decal *decOnePixel;
 
 	olc::Sprite *characterSprite;
 	olc::Decal *characterDecal;
