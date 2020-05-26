@@ -39,6 +39,12 @@ endif
 	
 ifneq ($(OS),Windows_NT)
 
+
+.PHONE: pack
+pack:
+	rm -f assets/resource.pak
+	olcPack assets/resource.pak "moros rocks" add assets/*.png assets/outdoors.json
+
 .PHONY: package-clean
 package-clean:
 	rm -rf dist
