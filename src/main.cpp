@@ -44,8 +44,6 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		game.state = SPLASH;
-
 		pack = new olc::ResourcePack();
 		pack->LoadPack("assets/resource.pak", "moros rocks");
 		
@@ -55,12 +53,12 @@ public:
 			return false;
 		}
 
-		tilesetSprite = new olc::Sprite("assets/olcBTB_tileset1.png", pack);
-		tilesetDecal = new olc::Decal(tilesetSprite);
+		sprTileset = new olc::Sprite("assets/olcBTB_tileset1.png", pack);
+		decTileset = new olc::Decal(sprTileset);
 
-		hudSprite = new olc::Sprite(110, 16);
+		sprHUD = new olc::Sprite(110, 16);
 
-		SetDrawTarget(hudSprite);
+		SetDrawTarget(sprHUD);
 		Clear(olc::BLANK);
 		DrawString(1, 1, "Time", olc::BLACK, 1);
 		DrawString(0, 0, "Time", olc::WHITE, 1);
@@ -70,8 +68,7 @@ public:
 		DrawRect(0, 10, 100, 4, olc::WHITE);
 		SetDrawTarget(nullptr);
 
-		hudDecal = new olc::Decal(hudSprite);
-
+		decHUD = new olc::Decal(sprHUD);
 
 		sprOnePixel = new olc::Sprite(1, 1);
 
@@ -81,32 +78,31 @@ public:
 
 		decOnePixel = new olc::Decal(sprOnePixel);
 
-		characterSprite = new olc::Sprite(32, 32);
-		characterDecal = new olc::Decal(characterSprite);
+		sprShadow = new olc::Sprite(32, 32);
 
-		shadowSprite = new olc::Sprite(32, 32);
-
-		SetDrawTarget(shadowSprite);
+		SetDrawTarget(sprShadow);
 		Clear(olc::BLANK);
-		FillCircle(characterSprite->width / 2, characterSprite->height - 6, 6, olc::Pixel(0, 0, 20, 128));
+		FillCircle(sprShadow->width / 2, sprShadow->height - 6, 6, olc::Pixel(0, 0, 20, 128));
 		SetDrawTarget(nullptr);
 
-		shadowDecal = new olc::Decal(shadowSprite);
+		decShadow = new olc::Decal(sprShadow);
 
-		splashSprite = new olc::Sprite("assets/olcBTB_splash.png", pack);
-		creditsSprite = new olc::Sprite("assets/olcBTB_credits.png", pack);
-		creditsDecal = new olc::Decal(creditsSprite);
+		sprSplash = new olc::Sprite("assets/olcBTB_splash.png", pack);
+		decSplash = new olc::Decal(sprSplash);
+
+		sprCredits = new olc::Sprite("assets/olcBTB_credits.png", pack);
+		decCredits = new olc::Decal(sprCredits);
 
 		LoadCharacterSprite();
 
 		olc::ResourceBuffer rb = pack->GetFileBuffer("assets/outdoors.json");
 		
-		map = parser.parse(rb.vMemory.data(), rb.vMemory.size());
-		tileset = map.getTileset("olcBTB_tileset1");
+		tMap = tParser.parse(rb.vMemory.data(), rb.vMemory.size());
+		tTileset = tMap.getTileset("olcBTB_tileset1");
 
-		objects = map.getLayer("objects");
+		lObjects = tMap.getLayer("objects");
 		
-		mapRenderSize = { ScreenWidth() / TILE_SIZE, ScreenHeight() / TILE_SIZE };
+		game.state = SPLASH;
 
 		return true;
 	}
@@ -154,7 +150,7 @@ private: // State Functions
 		}
 
 		// Draw splash screen sprite
-		DrawSprite(0, 0, splashSprite, 1);
+		DrawDecal({0, 0}, decSplash);
 	}
 	
 	void DoGame(float fElapsedTime)
@@ -199,7 +195,7 @@ private: // State Functions
 			game.sprite.SetState("right");
 		}
 
-		// COLLISIONS 
+		// COLLISIONS
 		game.dpos = game.pos + game.vel;  // thanks javidx9
 		
 		// check for collisions on the x axis
@@ -246,7 +242,7 @@ private: // State Functions
 		game.pos = game.dpos;
 
 		// object collisions (not as strict as the tile collisions above)
-		for(auto &obj : objects->getObjects())
+		for(auto &obj : lObjects->getObjects())
 		{
 			// position of the object in world space
 			olc::vf2d pos = {(float)obj.getPosition().x / TILE_SIZE, (float)obj.getPosition().y / TILE_SIZE};
@@ -276,8 +272,7 @@ private: // State Functions
 		olc::Pixel tint;
 
 		tint.r = uint8_t(255 - (game.time / (game.gameOverTime * 1.2f)) * 255);
-		tint.g = tint.r;
-		tint.b = tint.r;
+		tint.g = tint.b = tint.r;
 
 		// DRAWING
 		DrawMap(fElapsedTime, tint);
@@ -300,9 +295,7 @@ private: // State Functions
 		{
 			// calculate tint
 			tint.a = (uint8_t)(((1.0f - fProgress) * 255) - ((fFadeDelayTracker / fFadeDelay) * (1.0f - fProgress) * 255));
-			tint.r = tint.a;
-			tint.g = tint.a;
-			tint.b = tint.a;
+			tint.r = tint.g = tint.b = tint.a;
 
 			// track the delay
 			fFadeDelayTracker += fElapsedTime;
@@ -323,9 +316,7 @@ private: // State Functions
 		{
 			// calculate tint
 			tint.a = (uint8_t)((fFadeDelayTracker / fFadeDelay) * (1.0f - fProgress) * 255);
-			tint.r = tint.a;
-			tint.g = tint.a;
-			tint.b = tint.a;
+			tint.r = tint.g = tint.b = tint.a;
 
 			// track the delay
 			fFadeDelayTracker += fElapsedTime;
@@ -353,9 +344,8 @@ private: // State Functions
 			game.state = State::SPLASH;
 		}
 		
-		Clear(olc::BLACK);
-		DrawString((ScreenWidth() / 2) - (8 * 4 * 2), (ScreenHeight() / 2) - 12, "GAME OVER", olc::WHITE, 2);
-		DrawString((ScreenWidth() / 2) - (8 * 15 * 1), (ScreenHeight() / 2) + 12, "Press ESC or SPACE to Try Again", olc::WHITE, 1);
+		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 4 * 2), (float)(ScreenHeight() / 2) - 12}, "GAME OVER", olc::WHITE, {2.0f, 2.0f});
+		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 15 * 1), (float)(ScreenHeight() / 2) + 12}, "Press ESC or SPACE to Try Again", olc::WHITE);
 	}
 	
 	// end game state
@@ -370,9 +360,8 @@ private: // State Functions
 			game.state = State::CREDITS;
 		}
 		
-		Clear(olc::BLACK);
-		DrawString((ScreenWidth() / 2) - (8 * 8 * 2), (ScreenHeight() / 2) - 32, "Congratulations!", olc::WHITE, 2);
-		DrawString((ScreenWidth() / 2) - (8 * 8 * 2), (ScreenHeight() / 2) - 12, "You Made IT!!!!!", olc::WHITE, 2);
+		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 8 * 2), (float)(ScreenHeight() / 2) - 32}, "Congratulations!", olc::WHITE, {2.0f, 2.0f});
+		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 8 * 2), (float)(ScreenHeight() / 2) - 12}, "You Made IT!!!!!", olc::WHITE, {2.0f, 2.0f});
 	}
 	
 	// credits state
@@ -388,39 +377,84 @@ private: // State Functions
 
 		fScrollTracker += fElapsedTime * 40.0f;
 		
-		if(fScrollTracker > (creditsSprite->height + ScreenHeight()))
+		if(fScrollTracker > (sprCredits->height + ScreenHeight()))
 			fScrollTracker = 0.0f;
 
-		Clear(olc::BLACK);
-		DrawDecal({0, ScreenHeight() + -fScrollTracker }, creditsDecal);
+		DrawDecal({0, ScreenHeight() + -fScrollTracker }, decCredits);
 	}
 
 
 private:
 	void DrawCharacter(float fElapsedTime, olc::Pixel tint = olc::WHITE)
 	{
-		DrawDecal({(ScreenWidth() / 2) - TILE_SIZE + 0.0f, (ScreenHeight() / 2) - (TILE_SIZE * 1.6f) + 0.0f}, shadowDecal, {1.0f, 1.0f}, tint);
-		game.sprite.Draw(fElapsedTime, {(ScreenWidth() / 2) - TILE_SIZE + 0.0f, (ScreenHeight() / 2) - (TILE_SIZE * 1.8f) + 0.0f}, olc::Sprite::Flip::NONE, tint);
+		DrawDecal(
+			{
+				(ScreenWidth() / 2) - TILE_SIZE + 0.0f,
+				(ScreenHeight() / 2) - (TILE_SIZE * 1.6f) + 0.0f
+			},
+			decShadow,
+			{1.0f, 1.0f},
+			tint
+		);
+		
+		game.sprite.Draw(
+			fElapsedTime,
+			{
+				(ScreenWidth() / 2) - TILE_SIZE + 0.0f,
+				(ScreenHeight() / 2) - (TILE_SIZE * 1.8f) + 0.0f
+			},
+			olc::Sprite::Flip::NONE,
+			tint
+		);
 	}
 
 	// helper function draws the map at the current player position
 	void DrawMap(float fElapsedTime, olc::Pixel tint = olc::WHITE)
 	{
-		Clear(olc::BLACK);
-		
-		olc::vf2d offset {(float)fmod(game.pos.x * TILE_SIZE, TILE_SIZE) + TILE_SIZE / 2, (float)fmod(game.pos.y * TILE_SIZE, TILE_SIZE) + (ScreenHeight() % TILE_SIZE) / 2 };
+		olc::vf2d vCameraPos = game.pos;
+		olc::vf2d vVisibleTiles = {
+			(float)ScreenWidth() / TILE_SIZE,
+			(float)ScreenHeight() / TILE_SIZE
+		};
 
-		for(int y = -2; y < mapRenderSize.y + 2; y++)
+		olc::vf2d vCameraOffset = vCameraPos - vVisibleTiles / 2.0f;
+
+		// Get offsets for smooth movement
+		olc::vf2d vTileOffset = {
+			(vCameraOffset.x - (int)vCameraOffset.x) * TILE_SIZE,
+			(vCameraOffset.y - (int)vCameraOffset.y) * TILE_SIZE
+		};
+
+		for(int y = 0; y < vVisibleTiles.y + 2; y++)
 		{
-			for(int x = -2; x < mapRenderSize.x + 2; x++)
+			olc::vf2d temp;
+
+			temp.y = ((y - 0.5f) * TILE_SIZE) - vTileOffset.y;
+
+			for(int x = 0; x < vVisibleTiles.x + 2; x++)
 			{
-				for(auto &layer : map.getLayers())
+				temp.x = ((x - 0.5f) * TILE_SIZE) - vTileOffset.x;
+
+				for(auto &layer : tMap.getLayers())
 				{
-					tile = layer.getTileData(x + game.pos.x - (mapRenderSize.x / 2), y + game.pos.y - (mapRenderSize.y / 2));
+					tile = layer.getTileData(x + vCameraOffset.x, y + vCameraOffset.y);
+					
 					if(tile != nullptr)
 					{
-						olc::vi2d temp = {x * TILE_SIZE - (int)offset.x, y * TILE_SIZE - (int)offset.y};
-						DrawPartialDecal(temp, tilesetDecal, TilePosition(tile), { TILE_SIZE, TILE_SIZE }, { 1.0f, 1.0f }, tint);
+						DrawPartialDecal(
+							temp,
+							decTileset,
+							TilePosition(tile),
+							{
+								TILE_SIZE,
+								TILE_SIZE
+							},
+							{
+								1.0f,
+								1.0f
+							},
+							tint
+						);
 					}
 				}
 			}
@@ -430,10 +464,9 @@ private:
 	void DrawHUD(float fElapsedTime)
 	{
 		float fProgress = game.time / game.gameOverTime;
-		olc::vf2d pos = { 210, 210 };
 		
-		// DrawDecal(pos, hudDecal);
-		// DrawDecal(pos + olc::vf2d(1, 11), decOnePixel, {99 * fProgress, 3}, olc::VERY_DARK_GREY);
+		DrawDecal({210, 210}, decHUD);
+		DrawDecal({211, 221}, decOnePixel, {99 * fProgress, 3}, olc::VERY_DARK_GREY);
 	}
 
 	// loads and sets the animated character sprite states
@@ -481,8 +514,8 @@ private:
 		game.time = 0.0f;
 
 		// set starting point
-		game.pos.x = (float)objects->firstObj("player")->getPosition().x / TILE_SIZE;
-		game.pos.y = (float)objects->firstObj("player")->getPosition().y / TILE_SIZE;
+		game.pos.x = (float)lObjects->firstObj("player")->getPosition().x / TILE_SIZE;
+		game.pos.y = (float)lObjects->firstObj("player")->getPosition().y / TILE_SIZE;
 
 		// change to main game state
 		game.state = State::GAME;
@@ -494,7 +527,7 @@ private:
 		bool ret = true;
 
 		// top most layer takes precedence of the layers beneath it
-		for(auto &layer : map.getLayers())
+		for(auto &layer : tMap.getLayers())
 		{
 			tson::Tile *tile = layer.getTileData(pos.x + offset.x, pos.y + offset.y);
 			if(tile != nullptr)
@@ -526,39 +559,37 @@ private:
 	
 	olc::ResourcePack *pack;
 
-	tson::Tileson parser;
-	tson::Map map;
-	tson::Tileset *tileset;
+	tson::Tileson tParser;
+	tson::Map tMap;
+	tson::Tileset *tTileset;
 	tson::Tile *tile;
-	tson::Layer *objects;
+	tson::Layer *lObjects;
 
 	olc::vi2d tileSize;
 
-	olc::Sprite *tilesetSprite;
-	olc::Decal *tilesetDecal;
+	olc::Sprite *sprTileset;
+	olc::Decal *decTileset;
 
-	olc::Sprite *hudSprite;
-	olc::Decal *hudDecal;
+	olc::Sprite *sprHUD;
+	olc::Decal *decHUD;
 
 	olc::Sprite *sprOnePixel;
 	olc::Decal *decOnePixel;
 
-	olc::Sprite *characterSprite;
-	olc::Decal *characterDecal;
+	olc::Sprite *sprShadow;
+	olc::Decal *decShadow;
+
+	olc::Sprite *sprSplash;
+	olc::Decal *decSplash;
 	
-	olc::Sprite *shadowSprite;
-	olc::Decal *shadowDecal;
-
-	olc::Sprite *splashSprite;
-	olc::Sprite *creditsSprite;
-	olc::Decal *creditsDecal;
-
-	olc::vi2d mapRenderSize;
+	olc::Sprite *sprCredits;
+	olc::Decal *decCredits;
 };
 
 int main()
 {
 	olc_BeatTheBoredom game;
+	
 	if(game.Construct(320, 240, 2, 2, false, false))
 		game.Start();
 
