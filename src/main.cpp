@@ -547,11 +547,11 @@ private:
 		static int tilesetWidth = 0;
 
 		if(tilesetWidth == 0)
-			tilesetWidth = tileset->getImageSize().x / TILE_SIZE;
+			tilesetWidth = tTileset->getImageSize().x / (TILE_SIZE + 2);
 		
 		int id = t->getId()-1;
 
-		return { (id % tilesetWidth) * TILE_SIZE, (id / tilesetWidth) * TILE_SIZE };
+		return { ((id % tilesetWidth) * (TILE_SIZE + 2))+1, ((id / tilesetWidth) * (TILE_SIZE + 2))+1 };
 	}
 
 private:
