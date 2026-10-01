@@ -44,16 +44,7 @@ public:
 public:
 	bool OnUserCreate() override
 	{
-		pack = new olc::ResourcePack();
-		pack->LoadPack("assets/resource.pak", "moros rocks");
-		
-		if(!pack->Loaded())
-		{
-			std::cout << "Oh fuck!" << std::endl;
-			return false;
-		}
-
-		sprTileset = new olc::Sprite("assets/olcBTB_tileset1.png", pack);
+		sprTileset = new olc::Sprite("assets/olcBTB_tileset1.png");
 		decTileset = new olc::Decal(sprTileset);
 
 		sprHUD = new olc::Sprite(110, 16);
@@ -87,17 +78,15 @@ public:
 
 		decShadow = new olc::Decal(sprShadow);
 
-		sprSplash = new olc::Sprite("assets/olcBTB_splash.png", pack);
+		sprSplash = new olc::Sprite("assets/olcBTB_splash.png");
 		decSplash = new olc::Decal(sprSplash);
 
-		sprCredits = new olc::Sprite("assets/olcBTB_credits.png", pack);
+		sprCredits = new olc::Sprite("assets/olcBTB_credits.png");
 		decCredits = new olc::Decal(sprCredits);
 
 		LoadCharacterSprite();
 
-		olc::ResourceBuffer rb = pack->GetFileBuffer("assets/outdoors.json");
-		
-		tMap = tParser.parse(rb.vMemory.data(), rb.vMemory.size());
+		tMap = tParser.parse("assets/outdoors.json");
 		tTileset = tMap.getTileset("olcBTB_tileset1");
 
 		lObjects = tMap.getLayer("objects");
@@ -557,33 +546,33 @@ private:
 private:
 	Game game;
 	
-	olc::ResourcePack *pack;
+	olc::ResourcePack* pack{nullptr};
 
 	tson::Tileson tParser;
 	tson::Map tMap;
-	tson::Tileset *tTileset;
-	tson::Tile *tile;
-	tson::Layer *lObjects;
+	tson::Tileset* tTileset;
+	tson::Tile* tile;
+	tson::Layer* lObjects;
 
 	olc::vi2d tileSize;
 
-	olc::Sprite *sprTileset;
-	olc::Decal *decTileset;
+	olc::Sprite* sprTileset;
+	olc::Decal* decTileset;
 
-	olc::Sprite *sprHUD;
-	olc::Decal *decHUD;
+	olc::Sprite* sprHUD;
+	olc::Decal* decHUD;
 
-	olc::Sprite *sprOnePixel;
-	olc::Decal *decOnePixel;
+	olc::Sprite* sprOnePixel;
+	olc::Decal* decOnePixel;
 
-	olc::Sprite *sprShadow;
-	olc::Decal *decShadow;
+	olc::Sprite* sprShadow;
+	olc::Decal* decShadow;
 
-	olc::Sprite *sprSplash;
-	olc::Decal *decSplash;
+	olc::Sprite* sprSplash;
+	olc::Decal* decSplash;
 	
-	olc::Sprite *sprCredits;
-	olc::Decal *decCredits;
+	olc::Sprite* sprCredits;
+	olc::Decal* decCredits;
 };
 
 int main()

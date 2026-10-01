@@ -26,20 +26,19 @@ Get Home by Moros1138
 
 and everybody who hangs out on the OneLoneCoder Discord Server
 
-### Building on Windows
-This section is incomplete on account that I develop from a Linux first perspective. However, if you use MSYS2 and have the latest version of ``mingw-w64`` as well as ``make`` installed then you can follow the following instructions provided for building on Linux. Pull requests welcome to make this repo more Windows friendly.
-
-### Building and Running on Linux
-
-##### Building
+### Building
 
 ```sh
 git clone https://github.com/Moros1138/GetHome.git
 cd GetHome
-make
+
+cmake -S . -B build
+cmake --build build
 ```
-##### Running
+### Running
 
 ```sh
-bin/GetHome
+cd build
+
+./GetHome
 ```
