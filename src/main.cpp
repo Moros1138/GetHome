@@ -1,12 +1,9 @@
-#define OLC_PGE_APPLICATION
-#include "olcPixelGameEngine.h"
-
-#define OLC_PGEX_ANIMSPR
-#include "olcPGEX_AnimatedSprite.h"
+#include "olcPixelGameEngine3.h"
+#include "utilities/olcUTIL3_Geometry2D.h"
+#include "utilities/olcUTIL3_Animate2D.h"
+#include "utilities/olcUTIL3_GameMode.h"
 
 #include "tileson.hpp"
-
-#include <cstdio>
 
 #define MOVE_SPEED 6.0f
 #define TILE_SIZE 16
@@ -21,93 +18,115 @@ enum State {
 	CREDITS
 };
 
-struct Game {
-	int state;
-	olc::AnimatedSprite sprite;
-	olc::vf2d pos;
-	olc::vf2d dpos;
-	olc::vf2d vel;
-	olc::vi2d teleportPos;
-	float time;
-	float gameOverTime;
-};
-
-
-class olc_BeatTheBoredom : public olc::PixelGameEngine
+class GetHome_Game : public olc::PixelGameEngine
 {
 public:
-	olc_BeatTheBoredom()
+	GetHome_Game()
 	{
-		sAppName = "BeatTheBoredom";
+		sAppName = "GetHome";
 	}
 
 public:
 	bool OnUserCreate() override
 	{
-		sprTileset = new olc::Sprite("assets/olcBTB_tileset1.png");
-		decTileset = new olc::Decal(sprTileset);
+		CreateImageFromFile(imgCharacter, "assets/olcBTB_character.png");
+		CreateImageFromFile(imgTileset, "assets/olcBTB_tileset1.png");
+		CreateImage(imgHeadsUpDisplay, {110, 16});
+		CreateImageFromFile(imgSplash, "assets/olcBTB_splash.png");
+		CreateImageFromFile(imgCredits, "assets/olcBTB_credits.png");
+		CreateImage(imgShadow, {32, 32});
 
-		sprHUD = new olc::Sprite(110, 16);
+		draw.SetTarget(imgHeadsUpDisplay);
 
-		SetDrawTarget(sprHUD);
-		Clear(olc::BLANK);
-		DrawString(1, 1, "Time", olc::BLACK, 1);
-		DrawString(0, 0, "Time", olc::WHITE, 1);
+		draw.Clear(olc::Colour::BLANK);
+		draw.String({1, 1}, "Time", olc::Colour::BLACK);
+		draw.String({0, 0}, "Time", olc::Colour::WHITE);
 		
-		FillRect(2, 12, 100, 4, olc::BLACK);
-		FillRect(0, 10, 100, 4, olc::YELLOW);
-		DrawRect(0, 10, 100, 4, olc::WHITE);
-		SetDrawTarget(nullptr);
+		draw.FilledRect({2, 12}, {100, 4}, olc::Colour::BLACK);
+		draw.FilledRect({0, 10}, {100, 4}, olc::Colour::YELLOW);
+		draw.Rect({0, 10}, {100, 4}, olc::Colour::WHITE);
+		
+		draw.SetTarget(imgShadow);
+		draw.Clear(olc::Colour::BLANK);
+		draw.FilledCircle(olc::vi2d{ draw.GetTargetSize().x / 2, draw.GetTargetSize().x - 6 }, 6, olc::Pixel(0, 0, 20, 128));
+		
+		draw.SetTarget(GetScreen());
 
-		decHUD = new olc::Decal(sprHUD);
+		// define "up" sprite
+		olc::utils::Animate2D::FrameSequence anim_fs_walk_up;
+		anim_fs_walk_up.AddFrame(imgCharacter.region({   0, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({  32, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({  64, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({  96, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({ 128, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({ 160, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({ 192, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({ 224, 0 }, { 32, 32 }));
+		anim_fs_walk_up.AddFrame(imgCharacter.region({ 256, 0 }, { 32, 32 }));
 
-		sprOnePixel = new olc::Sprite(1, 1);
+		// define "left" sprite
+		olc::utils::Animate2D::FrameSequence anim_fs_walk_left;
+		anim_fs_walk_left.AddFrame(imgCharacter.region({   0, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({  32, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({  64, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({  96, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({ 128, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({ 160, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({ 192, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({ 224, 32 }, { 32, 32 }));
+		anim_fs_walk_left.AddFrame(imgCharacter.region({ 256, 32 }, { 32, 32 }));
 
-		SetDrawTarget(sprOnePixel);
-		Clear(olc::WHITE);
-		SetDrawTarget(nullptr);
+		// define "down" sprite
+		olc::utils::Animate2D::FrameSequence anim_fs_walk_down;
+		anim_fs_walk_down.AddFrame(imgCharacter.region({   0, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({  32, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({  64, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({  96, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({ 128, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({ 160, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({ 192, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({ 224, 64 }, { 32, 32 }));
+		anim_fs_walk_down.AddFrame(imgCharacter.region({ 256, 64 }, { 32, 32 }));
 
-		decOnePixel = new olc::Decal(sprOnePixel);
+		// define "right" sprite
+		olc::utils::Animate2D::FrameSequence anim_fs_walk_right;
+		anim_fs_walk_right.AddFrame(imgCharacter.region({   0, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({  32, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({  64, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({  96, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({ 128, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({ 160, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({ 192, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({ 224, 96 }, { 32, 32 }));
+		anim_fs_walk_right.AddFrame(imgCharacter.region({ 256, 96 }, { 32, 32 }));
 
-		sprShadow = new olc::Sprite(32, 32);
-
-		SetDrawTarget(sprShadow);
-		Clear(olc::BLANK);
-		FillCircle(sprShadow->width / 2, sprShadow->height - 6, 6, olc::Pixel(0, 0, 20, 128));
-		SetDrawTarget(nullptr);
-
-		decShadow = new olc::Decal(sprShadow);
-
-		sprSplash = new olc::Sprite("assets/olcBTB_splash.png");
-		decSplash = new olc::Decal(sprSplash);
-
-		sprCredits = new olc::Sprite("assets/olcBTB_credits.png");
-		decCredits = new olc::Decal(sprCredits);
-
-		LoadCharacterSprite();
+		animPlayer.AddState(PlayerAnimationState::WALK_UP, anim_fs_walk_up);
+		animPlayer.AddState(PlayerAnimationState::WALK_DOWN, anim_fs_walk_down);
+		animPlayer.AddState(PlayerAnimationState::WALK_LEFT, anim_fs_walk_left);
+		animPlayer.AddState(PlayerAnimationState::WALK_RIGHT, anim_fs_walk_right);
+		
+		game.playerAnimationState = PlayerAnimationState::WALK_DOWN;
+		animPlayer.ChangeState(game.animstate, PlayerAnimationState::WALK_DOWN);
 
 		tMap = tParser.parse("assets/outdoors.json");
-		tTileset = tMap.getTileset("olcBTB_tileset1");
-
-		lObjects = tMap.getLayer("objects");
+		tTileset = tMap->getTileset("olcBTB_tileset1");
+		lObjects = tMap->getLayer("objects");
 		
-		game.state = SPLASH;
+		// game.state = SPLASH;
+		StartGame(30.0f);
 
 		return true;
 	}
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		
 		if(game.state == State::NONE) return false;
-		
 		if(game.state == State::SPLASH) DoSplash(fElapsedTime);
 		if(game.state == State::GAME) DoGame(fElapsedTime);
 		if(game.state == State::TELEPORT) DoTeleport(fElapsedTime);
 		if(game.state == State::GAMEOVER) DoGameOver(fElapsedTime);
 		if(game.state == State::END_GAME) DoEndGame(fElapsedTime);
 		if(game.state == State::CREDITS) DoCredits(fElapsedTime);
-
 		return true;
 	}
 
@@ -115,31 +134,31 @@ private: // State Functions
 
 	void DoSplash(float fElapsedTime)
 	{
-		if(GetKey(olc::ESCAPE).bPressed)
+		if(keyboard.GetKey(olc::Key::ESCAPE).bPressed)
 		{
 			game.state = State::NONE;
 		}
 		
-		if(GetKey(olc::C).bPressed)
+		if(keyboard.GetKey(olc::Key::C).bPressed)
 		{
 			// switch to credits view
 			game.state = State::CREDITS;
 		}
 
-		if(GetKey(olc::E).bPressed)
+		if(keyboard.GetKey(olc::Key::E).bPressed)
 		{
 			// set easy mode
 			StartGame(60.0f);
 		}
 
-		if(GetKey(olc::H).bPressed)
+		if(keyboard.GetKey(olc::Key::H).bPressed)
 		{
 			// hard mode
 			StartGame(30.0f);
 		}
 
 		// Draw splash screen sprite
-		DrawDecal({0, 0}, decSplash);
+		draw.Image(imgSplash, {0, 0});
 	}
 	
 	void DoGame(float fElapsedTime)
@@ -151,37 +170,46 @@ private: // State Functions
 			game.state = State::GAMEOVER;
 		}
 
-		if(GetKey(olc::ESCAPE).bPressed)
+		if(keyboard.GetKey(olc::Key::ESCAPE).bPressed)
 		{
 			game.state = State::SPLASH;
 		}
 		
 		// force velocity to zero every frame, good for Top-Down RPG Style
 		game.vel = { 0.0f, 0.0f };
-
-		// PLAYER INPUT
-		if(GetKey(olc::UP).bHeld)
+		bool updateAnimation = false;
+		if(keyboard.GetKey(olc::Key::UP).bHeld)
 		{
 			game.vel.y = -MOVE_SPEED * fElapsedTime;
-			game.sprite.SetState("up");
+			game.playerAnimationState = PlayerAnimationState::WALK_UP;
+			updateAnimation = true;
 		}
-
-		if(GetKey(olc::DOWN).bHeld)
+		
+		if(keyboard.GetKey(olc::Key::DOWN).bHeld)
 		{
 			game.vel.y = MOVE_SPEED * fElapsedTime;
-			game.sprite.SetState("down");
+			game.playerAnimationState = PlayerAnimationState::WALK_DOWN;
+			updateAnimation = true;
 		}
 		
-		if(GetKey(olc::LEFT).bHeld)
+		if(keyboard.GetKey(olc::Key::LEFT).bHeld)
 		{
 			game.vel.x = -MOVE_SPEED * fElapsedTime;
-			game.sprite.SetState("left");
+			game.playerAnimationState = PlayerAnimationState::WALK_LEFT;
+			updateAnimation = true;
 		}
 		
-		if(GetKey(olc::RIGHT).bHeld)
+		if(keyboard.GetKey(olc::Key::RIGHT).bHeld)
 		{
 			game.vel.x = MOVE_SPEED * fElapsedTime;
-			game.sprite.SetState("right");
+			game.playerAnimationState = PlayerAnimationState::WALK_RIGHT;
+			updateAnimation = true;
+		}
+		
+		if(updateAnimation)
+		{
+			animPlayer.ChangeState(game.animstate, game.playerAnimationState);
+			animPlayer.UpdateState(game.animstate, fElapsedTime * 2.0f);
 		}
 
 		// COLLISIONS
@@ -258,24 +286,26 @@ private: // State Functions
 
 		}
 
-		olc::Pixel tint;
+		olc::Pixel tint = olc::Colour::WHITE;
 
 		tint.r = uint8_t(255 - (game.time / (game.gameOverTime * 1.2f)) * 255);
-		tint.g = tint.b = tint.r;
-
+		tint.g = tint.r;
+		tint.b = tint.r;
+	
 		// DRAWING
+		draw.Clear(olc::Colour::BLACK);
 		DrawMap(fElapsedTime, tint);
-		DrawHUD(fElapsedTime);
-		DrawCharacter(fElapsedTime, tint);
+		DrawHeadsUpDisplay(fElapsedTime);
+		DrawCharacter(tint);
 	}
 
-	// teleport state
+// 	// teleport state
 	void DoTeleport(float fElapsedTime)
 	{
 		static float fFadeDelay = 0.5;
 		static float fFadeDelayTracker = 0.0f;
 		static bool bFadeOut = true;
-		olc::Pixel tint = olc::WHITE;
+		olc::Pixel tint = olc::Colour::WHITE;
 		
 		float fProgress = game.time / (game.gameOverTime * 1.2f);
 
@@ -321,20 +351,31 @@ private: // State Functions
 		}
 		
 		DrawMap(fElapsedTime, tint);
-		DrawHUD(fElapsedTime);
-		DrawCharacter(fElapsedTime, tint);
+		DrawHeadsUpDisplay(fElapsedTime);
+		DrawCharacter(tint);
 	}
 	
 	// game over state
 	void DoGameOver(float fElapsedTime)
 	{
-		if(GetKey(olc::ESCAPE).bPressed || GetKey(olc::SPACE).bPressed)
+		if(keyboard.GetKey(olc::Key::ESCAPE).bPressed || keyboard.GetKey(olc::Key::SPACE).bPressed)
 		{
 			game.state = State::SPLASH;
 		}
 		
-		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 4 * 2), (float)(ScreenHeight() / 2) - 12}, "GAME OVER", olc::WHITE, {2.0f, 2.0f});
-		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 15 * 1), (float)(ScreenHeight() / 2) + 12}, "Press ESC or SPACE to Try Again", olc::WHITE);
+		draw.Clear(olc::Colour::BLACK);
+		draw.String(
+			olc::vi2d{(ScreenSize().x / 2) - (8 * 4 * 2), (ScreenSize().y / 2) - 12},
+			"GAME OVER",
+			olc::Colour::WHITE,
+			{2.0f, 2.0f}
+		);
+		
+		draw.String(
+			olc::vi2d{(ScreenSize().x / 2) - (8 * 15 * 1), (ScreenSize().y / 2) + 12},
+			"Press ESC or SPACE to Try Again",
+			olc::Colour::WHITE
+		);
 	}
 	
 	// end game state
@@ -348,9 +389,24 @@ private: // State Functions
 			fDelayTracker = 0.0f;
 			game.state = State::CREDITS;
 		}
+		draw.Clear(olc::Colour::BLACK);
+		draw.String(olc::vi2d{
+				(ScreenSize().x / 2) - (8 * 8 * 2),
+				(ScreenSize().y / 2) - 32
+			},
+			"Congratulations!",
+			olc::Colour::WHITE,
+			{ 2.0f, 2.0f }
+		);
 		
-		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 8 * 2), (float)(ScreenHeight() / 2) - 32}, "Congratulations!", olc::WHITE, {2.0f, 2.0f});
-		DrawStringDecal({(float)(ScreenWidth() / 2) - (8 * 8 * 2), (float)(ScreenHeight() / 2) - 12}, "You Made IT!!!!!", olc::WHITE, {2.0f, 2.0f});
+		draw.String(olc::vi2d{
+				(ScreenSize().x / 2) - (8 * 8 * 2),
+				(ScreenSize().y / 2) - 12
+			},
+			"You Made IT!!!!!",
+			olc::Colour::WHITE,
+			{ 2.0f, 2.0f }
+		);
 	}
 	
 	// credits state
@@ -358,7 +414,7 @@ private: // State Functions
 	{
 		static float fScrollTracker = 0.0f;
 
-		if(GetKey(olc::ESCAPE).bPressed)
+		if(keyboard.GetKey(olc::Key::ESCAPE).bPressed)
 		{
 			game.state = State::SPLASH;
 			fScrollTracker = 0.0f;
@@ -366,46 +422,43 @@ private: // State Functions
 
 		fScrollTracker += fElapsedTime * 40.0f;
 		
-		if(fScrollTracker > (sprCredits->height + ScreenHeight()))
+		if(fScrollTracker > (imgCredits.Size().y + ScreenSize().y))
 			fScrollTracker = 0.0f;
-
-		DrawDecal({0, ScreenHeight() + -fScrollTracker }, decCredits);
+		
+		draw.Clear(olc::Colour::BLACK);
+		draw.Image(imgCredits, {0, ScreenSize().y + -fScrollTracker });
 	}
 
 
 private:
-	void DrawCharacter(float fElapsedTime, olc::Pixel tint = olc::WHITE)
+	void DrawCharacter(olc::Pixel tint = olc::Colour::WHITE)
 	{
-		DrawDecal(
+		draw.Image(
+			imgShadow,
 			{
-				(ScreenWidth() / 2) - TILE_SIZE + 0.0f,
-				(ScreenHeight() / 2) - (TILE_SIZE * 1.6f) + 0.0f
+				(ScreenSize().x / 2) - TILE_SIZE + 0.0f,
+				(ScreenSize().y / 2) - (TILE_SIZE * 1.6f) + 0.0f
 			},
-			decShadow,
-			{1.0f, 1.0f},
+			{ 1.0f, 1.0f },
 			tint
 		);
 		
-		game.sprite.Draw(
-			fElapsedTime,
+		draw.Image(
+			animPlayer.GetFrame(game.animstate),
 			{
-				(ScreenWidth() / 2) - TILE_SIZE + 0.0f,
-				(ScreenHeight() / 2) - (TILE_SIZE * 1.8f) + 0.0f
+				(ScreenSize().x / 2) - TILE_SIZE + 0.0f,
+				(ScreenSize().y / 2) - (TILE_SIZE * 1.8f) + 0.0f
 			},
-			olc::Sprite::Flip::NONE,
+			{ 1.0f, 1.0f },
 			tint
 		);
 	}
 
 	// helper function draws the map at the current player position
-	void DrawMap(float fElapsedTime, olc::Pixel tint = olc::WHITE)
+	void DrawMap(float fElapsedTime, olc::Pixel tint = olc::Colour::WHITE)
 	{
 		olc::vf2d vCameraPos = game.pos;
-		olc::vf2d vVisibleTiles = {
-			(float)ScreenWidth() / TILE_SIZE,
-			(float)ScreenHeight() / TILE_SIZE
-		};
-
+		olc::vf2d vVisibleTiles = ScreenSize() / TILE_SIZE;
 		olc::vf2d vCameraOffset = vCameraPos - vVisibleTiles / 2.0f;
 
 		// Get offsets for smooth movement
@@ -424,73 +477,25 @@ private:
 			{
 				temp.x = ((x - 0.5f) * TILE_SIZE) - vTileOffset.x;
 
-				for(auto &layer : tMap.getLayers())
+				for(auto &layer : tMap->getLayers())
 				{
 					tile = layer.getTileData(x + vCameraOffset.x, y + vCameraOffset.y);
 					
 					if(tile != nullptr)
 					{
-						DrawPartialDecal(
-							temp,
-							decTileset,
-							TilePosition(tile),
-							{
-								TILE_SIZE,
-								TILE_SIZE
-							},
-							{
-								1.0f,
-								1.0f
-							},
-							tint
-						);
+						draw.Image(imgTileset.region(TilePosition(tile), { TILE_SIZE, TILE_SIZE }), temp, { 1.0f, 1.0f }, tint);
 					}
 				}
 			}
 		}
 	}
 	
-	void DrawHUD(float fElapsedTime)
+	void DrawHeadsUpDisplay(float fElapsedTime)
 	{
 		float fProgress = game.time / game.gameOverTime;
 		
-		DrawDecal({210, 210}, decHUD);
-		DrawDecal({211, 221}, decOnePixel, {99 * fProgress, 3}, olc::VERY_DARK_GREY);
-	}
-
-	// loads and sets the animated character sprite states
-	void LoadCharacterSprite()
-	{
-		game.sprite.mode = olc::AnimatedSprite::SPRITE_MODE::SINGLE; // set sprite to use a single spritesheet
-		game.sprite.type = olc::AnimatedSprite::SPRITE_TYPE::DECAL;
-
-		game.sprite.spriteSheet = new olc::Renderable("assets/olcBTB_character.png", pack); // define image to use for the spritesheet
-		
-		game.sprite.SetSpriteSize({32, 32}); // define size of each sprite with an olc::vi2d
-		game.sprite.SetSpriteScale(1.0f); // define scale of sprite; 1.0f is original size. Must be above 0 and defaults to 1.0f
-
-		// define "up" sprite
-		game.sprite.AddState("up", std::vector<olc::vi2d>{
-			{0, 0}, {32, 0}, {64, 0}, {96, 0}, {128, 0}, {160, 0}, {192, 0}, {224, 0}, {256, 0}
-		});
-
-		// define "left" sprite
-		game.sprite.AddState("left", std::vector<olc::vi2d>{
-			{0, 32}, {32, 32}, {64, 32}, {96, 32}, {128, 32}, {160, 32}, {192, 32}, {224, 32}, {256, 32},
-		});
-
-		// define "down" sprite
-		game.sprite.AddState("down", std::vector<olc::vi2d>{
-			{0, 64}, {32, 64}, {64, 64}, {96, 64}, {128, 64}, {160, 64}, {192, 64}, {224, 64}, {256, 64}
-		});
-
-		// define "right" sprite
-		game.sprite.AddState("right", std::vector<olc::vi2d>{
-			{0, 96}, {32, 96}, {64, 96}, {96, 96}, {128, 96}, {160, 96}, {192, 96}, {224, 96}, {256, 96}
-		});
-
-		// set initial state
-		game.sprite.SetState("down");
+		draw.Image(imgHeadsUpDisplay, {210, 210});
+		draw.FilledRect({211, 221}, {99 * fProgress, 3}, olc::Colour::VERY_DARK_GREY);
 	}
 	
 	// helper function to reset all game variables and kick off the GAME state
@@ -516,7 +521,7 @@ private:
 		bool ret = true;
 
 		// top most layer takes precedence of the layers beneath it
-		for(auto &layer : tMap.getLayers())
+		for(auto &layer : tMap->getLayers())
 		{
 			tson::Tile *tile = layer.getTileData(pos.x + offset.x, pos.y + offset.y);
 			if(tile != nullptr)
@@ -530,6 +535,7 @@ private:
 		
 		return ret;
 	}
+
 	// helper function to get a tile's position in the tileset, for drawing
 	olc::vi2d TilePosition(const tson::Tile *t)
 	{
@@ -543,43 +549,59 @@ private:
 		return { ((id % tilesetWidth) * (TILE_SIZE + 2))+1, ((id / tilesetWidth) * (TILE_SIZE + 2))+1 };
 	}
 
+	enum class PlayerAnimationState: uint8_t
+	{
+		WALK_UP,
+		WALK_LEFT,
+		WALK_DOWN,
+		WALK_RIGHT,
+	};
+
+	olc::utils::Animate2D::Animation<PlayerAnimationState> animPlayer;
+
+	struct Game {
+		int state{0};
+		olc::vf2d pos;
+		olc::vf2d dpos;
+		olc::vf2d vel;
+		olc::vi2d teleportPos;
+		PlayerAnimationState playerAnimationState{PlayerAnimationState::WALK_DOWN};
+		float time;
+		float gameOverTime;
+		
+		// magick?
+		olc::utils::Animate2D::AnimationState animstate;
+	};
+
 private:
 	Game game;
 	
-	olc::ResourcePack* pack{nullptr};
-
 	tson::Tileson tParser;
-	tson::Map tMap;
+	std::unique_ptr<tson::Map> tMap;
 	tson::Tileset* tTileset;
 	tson::Tile* tile;
 	tson::Layer* lObjects;
 
 	olc::vi2d tileSize;
 
-	olc::Sprite* sprTileset;
-	olc::Decal* decTileset;
-
-	olc::Sprite* sprHUD;
-	olc::Decal* decHUD;
-
-	olc::Sprite* sprOnePixel;
-	olc::Decal* decOnePixel;
-
-	olc::Sprite* sprShadow;
-	olc::Decal* decShadow;
-
-	olc::Sprite* sprSplash;
-	olc::Decal* decSplash;
-	
-	olc::Sprite* sprCredits;
-	olc::Decal* decCredits;
+	olc::Image imgCharacter;
+	olc::Image imgTileset;
+	olc::Image imgHeadsUpDisplay;
+	olc::Image imgShadow;
+	olc::Image imgSplash;
+	olc::Image imgCredits;
 };
 
 int main()
 {
-	olc_BeatTheBoredom game;
+	GetHome_Game game;
 	
-	if(game.Construct(320, 240, 2, 2, false, false))
+	olc::PGEConfig cfg;
+	cfg.vScreenSize = {320, 240};
+	cfg.vPixelSize = {2, 2};
+	cfg.bVSync = false;
+	
+	if(game.Construct(cfg))
 		game.Start();
 
 	return 0;
