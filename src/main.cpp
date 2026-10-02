@@ -285,7 +285,7 @@ private: // State Functions
 
 		}
 
-		olc::Pixel tint = olc::Colour::WHITE;
+		olc::Pixel tint;
 
 		tint.r = uint8_t(255 - (game.time / (game.gameOverTime * 1.2f)) * 255);
 		tint.g = tint.r;
