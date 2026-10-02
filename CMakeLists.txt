@@ -1,38 +1,29 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(GetHome)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-add_executable(GetHome)
-target_sources(GetHome
-    PRIVATE
-    src/main.cpp
-    src/olcPGEX_AnimatedSprite.h
-    src/olcPixelGameEngine.h
-    src/tileson.hpp
+ 
+# Add them to the include paths
+include_directories(
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/olcPixelGameEngine3"
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/olcPixelGameEngine3/extensions/miniaudio"
 )
 
-if(UNIX AND NOT APPLE)
-    target_link_options(GetHome PRIVATE
-        -lX11
-        -lGL
-        -lpng
-        -lstdc++
-        -lpthread
-        -lm
-    )
-endif()
+# Wrangle Source files
+file(
+    GLOB SOURCES
+    src/*.c
+    src/*.cpp
+    src/*.h
+    src/*.hpp
+)
 
-if(EMSCRIPTEN)
-    target_link_options(GetHome PRIVATE --preload-file ${ASSETS_DIR}@assets)
-else()
-    # Copy assets when not Web platform
-    add_custom_command(
-        TARGET GetHome
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND}
-        ARGS -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/assets
-    )        
-endif()
+# Include helper scripts
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Helpers.cmake)
+
+# platform detection and preparation
+pge3_prepare_platforms()
+
+# add_executable with all of the pge3 batteries includes
+pge3_add_program(${CMAKE_PROJECT_NAME} ${SOURCES})
+
+# copy/manage assets directory
+pge3_handle_assets(${CMAKE_PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/assets)
