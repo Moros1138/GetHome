@@ -380,12 +380,12 @@ namespace olc
 #pragma warning(default:4201)
 
 #if PGE_PIXEL_LAYOUT == PGE_PIXEL_LAYOUT_ABGR			
-			//             AABBGGRR
-			uint32_t n = 0xFF000000; // 4-Byte AGBR Component
-#endif
-#if PGE_PIXEL_LAYOUT == PGE_PIXEL_LAYOUT_RGBA
 			//             RRGGBBAA
 			uint32_t n = 0x000000FF; // 4-Byte RGBA Component
+#endif
+#if PGE_PIXEL_LAYOUT == PGE_PIXEL_LAYOUT_RGBA
+			//             AABBGGRR
+			uint32_t n = 0xFF000000; // 4-Byte AGBR Component
 #endif
 		};
 
