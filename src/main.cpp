@@ -112,8 +112,7 @@ public:
 		tTileset = tMap->getTileset("olcBTB_tileset1");
 		lObjects = tMap->getLayer("objects");
 		
-		// game.state = SPLASH;
-		StartGame(30.0f);
+		game.state = SPLASH;
 
 		return true;
 	}

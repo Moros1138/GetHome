@@ -1,9 +1,5 @@
-olcPixelGameEngine - Javidx9
-https://github.com/OneLoneCoder/olcPixelGameEngine
-
-
-olcPGEX_AnimatedSprite - SaladinAkara
-https://github.com/matt-hayward/olcPGEX_AnimatedSprite
+olcPixelGameEngine3 - Javidx9
+https://github.com/OneLoneCoder/olcPixelGameEngine3
 
 
 tileson - SSBMTonberry
