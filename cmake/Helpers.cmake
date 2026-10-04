@@ -6,7 +6,7 @@ function(pge3_prepare_platforms)
         execute_process(COMMAND "${EMSCRIPTEN_ROOT_PATH}/embuilder${EMCC_SUFFIX}" build libpng zlib)
     endif()
 
-    if(UNIX AND NOT WIN32)
+    if(UNIX AND NOT WIN32 AND NOT EMSCRIPTEN)
 
         find_package(PkgConfig REQUIRED)
 
@@ -148,6 +148,9 @@ function(pge3_add_program PROGRAM_NAME)
     endif()
     
     if(EMSCRIPTEN)
+        
+        target_compile_options(${PROGRAM_NAME} PRIVATE -Wno-unqualified-std-cast-call)
+        
         set_target_properties(${PROGRAM_NAME} PROPERTIES SUFFIX ".html")
                     
         target_link_options(${PROGRAM_NAME} PRIVATE -sASYNCIFY)
