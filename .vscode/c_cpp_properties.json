@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/include/libdecor-0"
+
+            ],
+            "defines": ["OLC_PGE3_APPLICATION"],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "linux-gcc-x64"
+        },
+        {
+            "name": "Emscripten",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/emsdk/upstream/emscripten/system/include/**"
+            ],
+            "defines": ["__EMSCRIPTEN__","OLC_PGEX3_MINIAUDIO","OLC_PGE3_APPLICATION"],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "linux-gcc-x64"
+        },
+        {
+            "name": "MinGW",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/usr/x86_64-w64-mingw32/include/c++/15.2.0/**",
+                "/usr/x86_64-w64-mingw32/include/**"
+            ],
+            "defines": ["_WIN32"],
+            "compilerPath": "/usr/bin/x86_64-w64-mingw32-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++20",
+            "intelliSenseMode": "windows-gcc-x86"
+        }
+
+    ],
+    "version": 4
+}
