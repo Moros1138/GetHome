@@ -135,7 +135,9 @@ private: // State Functions
 	{
 		if(keyboard.GetKey(olc::Key::ESCAPE).bPressed)
 		{
+#if OLC_HOST != OLC_HOST_EMSCRIPTEN
 			game.state = State::NONE;
+#endif
 		}
 		
 		if(keyboard.GetKey(olc::Key::C).bPressed)
